@@ -1,0 +1,89 @@
+import sys
+import os
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import base64
+
+def generate_key(password):
+    # Convert password to bytes
+    password = password.encode()
+    # Generate a salt
+    salt = b'securefiles_salt'  # In production, use a random salt and store it securely
+    # Generate key using PBKDF2
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+    return key
+
+def encrypt(msg, key):
+    f = Fernet(key)
+    return f.encrypt(msg.encode()).decode()
+
+def decrypt(encrypted_msg, key):
+    f = Fernet(key)
+    return f.decrypt(encrypted_msg.encode()).decode()
+
+def list_text_files(folder_path):
+    text_files = []
+    for file_name in os.listdir(folder_path):
+        if '.txt' in file_name:
+            text_files.append(file_name)
+    return text_files
+
+pwd = input("Enter password to login: ")
+if pwd != "One1two2":
+    print("INCORRECT PASSWORD. ACCESS DENIED ❌ ")
+    sys.exit()
+else:
+    print("ACCESS GRANTED  ✅\n\n")
+    print("\t\t\tWELCOME TO THE SECURE FILE SYSTEM 📁")
+    print("\n1. Create New file.\n2. View existing files.")
+
+    # Generate encryption key from password
+    key = generate_key(pwd)
+
+    ch = int(input("Enter command[1/2]: "))
+    if ch == 1: 
+        try:
+            name = input("Enter name for new file:  ")
+            fname = name + ".txt"
+            file = open(fname, 'x') 
+            msg = input("Enter the file data: ")
+            encrypted_data = encrypt(msg, key)
+            file.write(encrypted_data)
+            file.close()
+            print("File encrypted and saved successfully!")
+        except FileExistsError:
+            print("FILE ALREADY EXISTS")
+    
+    elif ch == 2:
+        folder_path = 'C:\\Users\\poora\\OneDrive\\Desktop\\codes\\portfolio projects\\secure files'
+        text_files = list_text_files(folder_path)
+        print("\nFiles present in the database: \n")
+        num = 1
+        for i in text_files:
+            print(num, ". ", i)
+            num += 1
+
+        file_name = input("\nEnter name of file to read:  \n")
+        try:
+            file = open(file_name, 'r')
+            encrypted_data = file.read()
+            decrypted_data = decrypt(encrypted_data, key)
+            print("Data in file: \n")
+            print(decrypted_data)
+            file.close()
+        except Exception as e:
+            print(f"Error reading file: {str(e)}")
+    
+    else: 
+        print("INVALID CHOICE!")
+
+
+
+
